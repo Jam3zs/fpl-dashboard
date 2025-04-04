@@ -165,13 +165,7 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 
 
 
-from PIL import Image
-
-# Crop logo top and bottom
-logo = Image.open("logo.png")
-width, height = logo.size
-cropped_logo = logo.crop((0, height * 0.35, width, height * 0.65))
-st.image(cropped_logo, use_container_width=True)
+st.image("logo.png", use_container_width=True)
 
 import random
 
