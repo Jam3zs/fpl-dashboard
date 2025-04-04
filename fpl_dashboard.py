@@ -77,17 +77,18 @@ extra_rivals = st.sidebar.multiselect("Select additional rivals from top 50:", [
 
 # Collect manager info
 manager_ids = {
-    user_team: int(user_id),
-    rival1_team: int(rival1_id),
-    rival2_team: int(rival2_id)
+    user_team: {'id': int(user_id), 'rank': user_rank}
 }
+manager_ids[rival1_team] = {'id': int(rival1_id), 'rank': next((r['rank'] for r in standings if r['entry'] == int(rival1_id)), None)}
+manager_ids[rival2_team] = {'id': int(rival2_id), 'rank': next((r['rank'] for r in standings if r['entry'] == int(rival2_id)), None)}
 
 # Parse and add extra rivals
 for item in extra_rivals:
     name_id = item.split(" (ID: ")
     name = name_id[0]
     rid = int(name_id[1].replace(")", ""))
-    manager_ids[name] = rid
+    rival_rank = next((r['rank'] for r in standings if r['entry'] == rid), None)
+    manager_ids[name] = {'id': rid, 'rank': rival_rank}
 
 def fetch_history(manager_id):
     url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/history/"
@@ -98,7 +99,8 @@ def fetch_history(manager_id):
 
 # Load data
 dataframes = {}
-for name, mid in manager_ids.items():
+for name, info in manager_ids.items():
+    mid = info['id']
     df = fetch_history(mid)
     df = df.rename(columns={
         'points': f'{name} Weekly',
@@ -137,7 +139,7 @@ def get_image_download_link(fig):
 
 if view in ["Total Points", "Weekly Points"]:
     fig, ax = plt.subplots(figsize=(12, 6))
-    for name in manager_ids:
+    for name, info in manager_ids.items():
         col = f'{name} Total' if view == "Total Points" else f'{name} Weekly'
         ax.plot(filtered['event'], filtered[col], marker='o', label=name)
     ax.set_ylabel("Total Points" if view == "Total Points" else "Weekly Points")
@@ -169,11 +171,13 @@ elif view == "Leaderboard Table":
     latest = combined[combined['event'] == combined['event'].max()].copy()
     leaderboard = {
         'Manager': [],
-        'Total Points': []
+        'Total Points': [],
+        'Rank': []
     }
     for name in manager_ids:
         leaderboard['Manager'].append(name)
         leaderboard['Total Points'].append(latest[f'{name} Total'].values[0])
+        leaderboard['Rank'].append(info.get('rank', '-'))
 
     df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
     st.subheader("Current Leaderboard")
