@@ -167,6 +167,8 @@ taglines = [
 ]
 st.caption(random.choice(taglines))
 
+
+
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
