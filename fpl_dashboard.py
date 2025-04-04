@@ -38,14 +38,7 @@ st.sidebar.title(f"👤 {user_team}")
 # Secret "H" button to reveal hidden league (must come before league_options is set)
 
 
-# Secret "H" button to reveal hidden league (must come before league_options is set)
-if user_id == "660915":
-    col1, col2, col3 = st.columns([1, 1, 8])
-    with col1:
-        if st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
-            st.session_state.show_hidden_league = True
-    with col3:
-        st.caption(f"Built for {user_team} 🍞⚽")
+
 
 # Define standings so it always exists
 standings = []
@@ -59,7 +52,7 @@ def get_user_leagues(user_id):
 
     # Hide specific league for your ID unless toggle is enabled
     hidden_league_name = "the competitive heads from 51"
-    hide_league = True
+    hide_league = not st.session_state.get("show_hidden_league", False)
 
 
 try:
@@ -164,6 +157,19 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 
 
 st.image("logo.png", use_container_width=True)
+
+# Secret 'H' click inside team name caption
+if user_id == "660915":
+    st.markdown(
+        f"<div style='text-align: center; font-size: 1rem;'>Built for Palmer <span style='cursor:pointer; color:transparent;' onclick=\"window.location.reload();\">H</span>am Sandwich 🍞⚽</div>",
+        unsafe_allow_html=True
+    )
+    if 'show_hidden_league' not in st.session_state:
+        st.session_state['show_hidden_league'] = False
+    if st.experimental_get_query_params().get("unlock") == ["yes"]:
+        st.session_state['show_hidden_league'] = True
+else:
+    st.caption(f"Built for {user_team} 🍞⚽")
 
 import random
 
