@@ -26,7 +26,7 @@ def get_user_leagues(user_id):
     url = f"https://fantasy.premierleague.com/api/entry/{user_id}/"
     data = requests.get(url).json()
     leagues = data['leagues']['classic']
-    return {league['name']: league['id'] for league in leagues}
+    return {league['name']: league['id'] for league in leagues if league['entry_rank'] and league['entry_rank'] <= 1000}
 
 @st.cache_data(show_spinner=False)
 def fetch_league_standings(league_id):
