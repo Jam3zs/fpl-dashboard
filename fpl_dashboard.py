@@ -72,11 +72,20 @@ def find_closest_above(user_id, standings):
     if user_index is None:
         return [], [], None
     user_rank = standings[user_index]['rank']
-    rivals_above = [r for r in standings[max(0, user_index - 2):user_index] if str(r['entry']) != user_id]
+
+    # Get 2 rivals closest (1 above and 1 below, or 2 below if first)
+    if user_index == 0:
+        auto_rivals = standings[1:3]
+    elif user_index == 1:
+        auto_rivals = [standings[0], standings[2]] if len(standings) > 2 else [standings[0]]
+    else:
+        auto_rivals = [standings[user_index - 1], standings[user_index + 1]] if user_index + 1 < len(standings) else [standings[user_index - 1]]
+
+    # Get 25 above and below for selection
     start = max(0, user_index - 25)
     end = min(len(standings), user_index + 26)
     nearby = [r for i, r in enumerate(standings[start:end]) if str(r['entry']) != user_id]
-    return rivals_above[:2], nearby, user_rank
+    return auto_rivals[:2], nearby, user_rank
 
 try:
     if standings:
