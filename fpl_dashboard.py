@@ -134,7 +134,7 @@ for name, df in dataframes.items():
     combined = combined.merge(df, on='event', how='outer')
 
 # Sidebar options
-view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table", "Weekly Averages", "Biggest Swing", "Best/Worst Gameweeks", "Rolling Averages", "Form Indicator", "Head-to-Head Heatmap"])
+view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table", "Weekly Averages", "Biggest Swing", "Best/Worst Gameweeks", "Rolling Averages", "Form Indicator", "Head-to-Head Heatmap", "Gameweek Rank Trend"])
 
 min_week = int(combined['event'].min())
 max_week = int(combined['event'].max())
@@ -256,8 +256,35 @@ elif view == "Leaderboard Table":
             leaderboard['Manager'].append(name)
             leaderboard['Total Points'].append(latest[col].values[0])
             leaderboard['Rank'].append(info.get('rank', '-'))
-    df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
+    df_leaderboard = pd.DataFrame(leaderboard)
+
+    # Add trophies to top manager
+    if not df_leaderboard.empty:
+        df_leaderboard['🏆'] = ['🥇' if i == 0 else '' for i in range(len(df_leaderboard))]
+        cols = ['🏆'] + [col for col in df_leaderboard.columns if col != '🏆']
+        df_leaderboard = df_leaderboard[cols]
+
     st.subheader("Current Leaderboard")
+
+    # Add form indicators to manager names
+    form_trends = {}
+    for name in df_leaderboard['Manager']:
+        if f"{name} Weekly" in combined.columns:
+            recent = combined[f"{name} Weekly"].iloc[-3:]
+            if len(recent) >= 3:
+                trend = recent.iloc[-1] - recent.iloc[0]
+                form_trends[name] = "🔺" if trend > 0 else "🔻"
+            else:
+                form_trends[name] = ""
+        else:
+            form_trends[name] = ""
+
+    df_leaderboard['Manager'] = df_leaderboard['Manager'].apply(lambda name: f"{name} {form_trends.get(name, '')}")
+
+    # Add export option
+    csv = df_leaderboard.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download Leaderboard as CSV", data=csv, file_name="fpl_leaderboard.csv", mime="text/csv")
+
     st.table(df_leaderboard)
 
 elif view == "Weekly Averages":
@@ -292,6 +319,38 @@ elif view == "Biggest Swing":
     df_swing = pd.DataFrame(swings).sort_values(by="Swing", ascending=False).reset_index(drop=True)
     st.subheader("Biggest Gameweek Point Swings")
     st.table(df_swing)
+
+elif view == "Gameweek Rank Trend":
+    st.subheader("📈 Gameweek Rank Trend (Animated)")
+    import time
+    rank_data = []
+    for gw in filtered['event']:
+        gw_data = []
+        for name in manager_ids:
+            col = f"{name} Total"
+            if col in combined.columns:
+                score = combined.loc[combined['event'] == gw, col].values[0]
+                gw_data.append((name, score))
+        gw_data.sort(key=lambda x: x[1], reverse=True)
+        for rank, (name, _) in enumerate(gw_data, 1):
+            rank_data.append({'Manager': name, 'Gameweek': gw, 'Rank': rank})
+    df_ranks = pd.DataFrame(rank_data)
+
+    # Animated chart using line updates
+    chart_placeholder = st.empty()
+    for current_gw in df_ranks['Gameweek'].unique():
+        fig, ax = plt.subplots(figsize=(12, 6))
+        for name in df_ranks['Manager'].unique():
+            subset = df_ranks[(df_ranks['Manager'] == name) & (df_ranks['Gameweek'] <= current_gw)]
+            ax.plot(subset['Gameweek'], subset['Rank'], marker='o', label=name)
+        ax.set_xlabel("Gameweek")
+        ax.set_ylabel("League Position")
+        ax.invert_yaxis()
+        ax.set_title(f"Manager Position up to GW {current_gw}")
+        ax.legend()
+        ax.grid(True)
+        chart_placeholder.pyplot(fig)
+        time.sleep(0.3)
 
 # (Retain previous views like Total Points, Weekly Points, etc. here...)
 
