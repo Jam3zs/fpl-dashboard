@@ -173,6 +173,8 @@ selected_range = st.sidebar.slider("Select Gameweek Range:", min_value=min_week,
 
 filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'] <= selected_range[1])]
 
+st.image("logo.png", use_container_width=True)
+
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
