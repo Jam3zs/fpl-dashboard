@@ -13,35 +13,12 @@ st.set_page_config(page_title="FPL Dashboard", layout="wide", initial_sidebar_st
 # Apply Streamlit dark theme colors
 sns.set_theme(style="darkgrid")
 
-
+st.sidebar.title("FPL Dashboard")
 
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
+user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
-if not user_id:
-    st.error("Please enter your FPL ID to continue.")
-    st.stop()
-
-try:
-    if user_id:
-        user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
-        user_team = user_info.get("name", "Palmer Ham Sandwich")
-    else:
-        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
-except:
-    user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
-
-st.sidebar.title(f"👤 {user_team}")
-
-
-
-# Secret "H" button to reveal hidden league (must come before league_options is set)
-
-
-
-
-# Define standings so it always exists
-standings = []
 
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
@@ -49,35 +26,45 @@ def get_user_leagues(user_id):
     url = f"https://fantasy.premierleague.com/api/entry/{user_id}/"
     data = requests.get(url).json()
     leagues = data['leagues']['classic']
+    return {league['name']: league['id'] for league in leagues if league['entry_rank'] and league['entry_rank'] <= 1000}
 
-    # Hide specific league for your ID unless toggle is enabled
-    hidden_league_name = "the competitive heads from 51"
-    hide_league = not st.session_state.get("show_hidden_league", False)
+@st.cache_data(show_spinner=False)
+def fetch_league_standings(league_id):
+    standings = []
+    page = 1
+    found_user = False
+    while True:
+        url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/?page_standings={page}"
+        data = requests.get(url).json()
+        results = data['standings']['results']
+        if not results:
+            break
+        standings.extend(results)
+        # Check if user's ID is in this page
+        if any(str(r['entry']) == str(user_id) for r in results):
+            found_user = True
+        if data['standings']['has_next']:
+            page += 1
+        else:
+            break
+    if not found_user:
+        st.sidebar.warning("Your team wasn't found in this mini-league. You may not be ranked yet or the league is too large.")
+    return standings
 
-    league_dict = {}
-    for league in leagues:
-        name = league['name'].strip().lower()
-        if league['entry_rank'] and league['entry_rank'] <= 1000:
-            if hide_league and name == hidden_league_name:
-                continue
-            league_dict[league['name']] = league['id']
-
-    return league_dict
-
-
-try:
-    league_options = get_user_leagues(user_id)
-    selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
-    if selected_league:
-        league_id = league_options[selected_league]
-        standings = fetch_league_standings(league_id)
-except:
+league_options = {}
+standings = []
+if user_id:
+    try:
+        league_options = get_user_leagues(user_id)
+        selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
+        if selected_league:
+            league_id = league_options[selected_league]
+            standings = fetch_league_standings(league_id)
+    except:
         st.sidebar.warning("Unable to load leagues or standings. Check your FPL ID.")
         selected_league = None
 else:
     selected_league = None
-
-nearby_rivals = []  # Ensure this exists even if try fails
 
 # Auto-pick closest rivals
 def find_closest_above(user_id, standings):
@@ -85,20 +72,11 @@ def find_closest_above(user_id, standings):
     if user_index is None:
         return [], [], None
     user_rank = standings[user_index]['rank']
-
-    # Always try to get 2 above if available
-    if user_index >= 2:
-        auto_rivals = [standings[user_index - 2], standings[user_index - 1]]
-    elif user_index == 1:
-        auto_rivals = [standings[0], standings[2]] if len(standings) > 2 else [standings[0]]
-    else:
-        auto_rivals = standings[1:3] if len(standings) > 2 else standings[1:]
-
-    # Get 25 above and below for selection
+    rivals_above = [r for r in standings[max(0, user_index - 2):user_index] if str(r['entry']) != user_id]
     start = max(0, user_index - 25)
     end = min(len(standings), user_index + 26)
     nearby = [r for i, r in enumerate(standings[start:end]) if str(r['entry']) != user_id]
-    return auto_rivals[:2], nearby, user_rank
+    return rivals_above[:2], nearby, user_rank
 
 try:
     if standings:
@@ -156,7 +134,7 @@ for name, df in dataframes.items():
     combined = combined.merge(df, on='event', how='outer')
 
 # Sidebar options
-view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table", "Weekly Averages", "Biggest Swing", "Best/Worst Gameweeks", "Rolling Averages", "Form Indicator", "Head-to-Head Heatmap", "Gameweek Rank Trend"])
+view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table", "Weekly Averages", "Biggest Swing", "Best/Worst Gameweeks", "Rolling Averages", "Form Indicator", "Head-to-Head Heatmap"])
 
 min_week = int(combined['event'].min())
 max_week = int(combined['event'].max())
@@ -164,28 +142,10 @@ selected_range = st.sidebar.slider("Select Gameweek Range:", min_value=min_week,
 
 filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'] <= selected_range[1])]
 
-
-
-st.image("logo.png", use_container_width=True)
-
-st.caption(f"Built for {user_team} 🍞⚽")
-
-import random
-
-# Fun tagline rotation
-taglines = [
-    "The only dashboard tastier than your green arrows 😋⚽",
-    "Serving FPL stats with extra sauce 🍔📊",
-    "Where clean sheets meet sandwich dreams 🧼🥪",
-    "Crunch your rivals. Like lettuce. 🥬⚽",
-    "A delicious way to digest your gameweek 🍽️📈"
-]
-st.caption(random.choice(taglines))
-
-
-
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
+
+st.title(f"FPL Comparison: {user_team} vs Rivals")
 
 # Add option to download plot
 def get_image_download_link(fig):
@@ -296,35 +256,8 @@ elif view == "Leaderboard Table":
             leaderboard['Manager'].append(name)
             leaderboard['Total Points'].append(latest[col].values[0])
             leaderboard['Rank'].append(info.get('rank', '-'))
-    df_leaderboard = pd.DataFrame(leaderboard)
-
-    # Add trophies to top manager
-    if not df_leaderboard.empty:
-        df_leaderboard['🏆'] = ['🥇' if i == 0 else '' for i in range(len(df_leaderboard))]
-        cols = ['🏆'] + [col for col in df_leaderboard.columns if col != '🏆']
-        df_leaderboard = df_leaderboard[cols]
-
+    df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
     st.subheader("Current Leaderboard")
-
-    # Add form indicators to manager names
-    form_trends = {}
-    for name in df_leaderboard['Manager']:
-        if f"{name} Weekly" in combined.columns:
-            recent = combined[f"{name} Weekly"].iloc[-3:]
-            if len(recent) >= 3:
-                trend = recent.iloc[-1] - recent.iloc[0]
-                form_trends[name] = "🔺" if trend > 0 else "🔻"
-            else:
-                form_trends[name] = ""
-        else:
-            form_trends[name] = ""
-
-    df_leaderboard['Manager'] = df_leaderboard['Manager'].apply(lambda name: f"{name} {form_trends.get(name, '')}")
-
-    # Add export option
-    csv = df_leaderboard.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download Leaderboard as CSV", data=csv, file_name="fpl_leaderboard.csv", mime="text/csv")
-
     st.table(df_leaderboard)
 
 elif view == "Weekly Averages":
@@ -360,38 +293,6 @@ elif view == "Biggest Swing":
     st.subheader("Biggest Gameweek Point Swings")
     st.table(df_swing)
 
-elif view == "Gameweek Rank Trend":
-    st.subheader("📈 Gameweek Rank Trend (Animated)")
-    import time
-    rank_data = []
-    for gw in filtered['event']:
-        gw_data = []
-        for name in manager_ids:
-            col = f"{name} Total"
-            if col in combined.columns:
-                score = combined.loc[combined['event'] == gw, col].values[0]
-                gw_data.append((name, score))
-        gw_data.sort(key=lambda x: x[1], reverse=True)
-        for rank, (name, _) in enumerate(gw_data, 1):
-            rank_data.append({'Manager': name, 'Gameweek': gw, 'Rank': rank})
-    df_ranks = pd.DataFrame(rank_data)
-
-    # Animated chart using line updates
-    chart_placeholder = st.empty()
-    for current_gw in df_ranks['Gameweek'].unique():
-        fig, ax = plt.subplots(figsize=(12, 6))
-        for name in df_ranks['Manager'].unique():
-            subset = df_ranks[(df_ranks['Manager'] == name) & (df_ranks['Gameweek'] <= current_gw)]
-            ax.plot(subset['Gameweek'], subset['Rank'], marker='o', label=name)
-        ax.set_xlabel("Gameweek")
-        ax.set_ylabel("League Position")
-        ax.invert_yaxis()
-        ax.set_title(f"Manager Position up to GW {current_gw}")
-        ax.legend()
-        ax.grid(True)
-        chart_placeholder.pyplot(fig)
-        time.sleep(0.3)
-
 # (Retain previous views like Total Points, Weekly Points, etc. here...)
 
 # Shareable link instructions
@@ -399,4 +300,4 @@ share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&
 st.markdown("---")
 st.markdown("### 🔗 Share This Setup")
 st.code(share_url)
-
+st.caption(f"Built for {user_team} 🍞⚽")
