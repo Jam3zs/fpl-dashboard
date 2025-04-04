@@ -59,12 +59,13 @@ def get_user_leagues(user_id):
     hide_league = True
 
 
-league_options = get_user_leagues(user_id)
-        selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
-        if selected_league:
-            league_id = league_options[selected_league]
-            standings = fetch_league_standings(league_id)
-    except:
+try:
+    league_options = get_user_leagues(user_id)
+    selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
+    if selected_league:
+        league_id = league_options[selected_league]
+        standings = fetch_league_standings(league_id)
+except:
         st.sidebar.warning("Unable to load leagues or standings. Check your FPL ID.")
         selected_league = None
 else:
