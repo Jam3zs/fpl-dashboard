@@ -85,7 +85,15 @@ league_options = {}
 standings = []
 if user_id:
     try:
-        league_options = get_user_leagues(user_id)
+        if user_id == "660915":
+    col1, col2, col3 = st.columns([1, 1, 8])
+    with col1:
+        if st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
+            st.session_state.show_hidden_league = True
+    with col3:
+        st.caption(f"Built for {user_team} 🍞⚽")
+
+league_options = get_user_leagues(user_id)
         selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
         if selected_league:
             league_id = league_options[selected_league]
@@ -414,9 +422,4 @@ share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&
 st.markdown("---")
 st.markdown("### 🔗 Share This Setup")
 st.code(share_url)
-col1, col2, col3 = st.columns([1, 1, 8])
-with col1:
-    if user_id == "660915" and st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
-        st.session_state.show_hidden_league = True
-with col3:
-    st.caption(f"Built for {user_team} 🍞⚽")
+
