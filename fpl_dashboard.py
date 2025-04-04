@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import requests
 import matplotlib.pyplot as plt
+import base64
 
+st.set_page_config(page_title="FPL Dashboard", layout="wide")
 st.sidebar.title("FPL Dashboard")
 
 # User input for team names and IDs
@@ -55,6 +57,16 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 
 st.title(f"FPL Comparison: {user_team} vs Rivals")
 
+# Add option to download plot
+def get_image_download_link(fig):
+    import io
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    b64 = base64.b64encode(buf.read()).decode()
+    href = f'<a href="data:image/png;base64,{b64}" download="fpl_graph.png">📥 Download this graph as PNG</a>'
+    return href
+
 if view in ["Total Points", "Weekly Points"]:
     fig, ax = plt.subplots(figsize=(12, 6))
     for name in manager_ids:
@@ -67,6 +79,7 @@ if view in ["Total Points", "Weekly Points"]:
     ax.grid(True)
     st.pyplot(fig)
     st.subheader(f"{view} by Gameweek")
+    st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
 
 elif view == "Points Difference":
     base = user_team
@@ -82,6 +95,7 @@ elif view == "Points Difference":
     ax.grid(True)
     st.pyplot(fig)
     st.subheader(f"Points Difference vs {base}")
+    st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
 
 elif view == "Leaderboard Table":
     latest = combined[combined['event'] == combined['event'].max()].copy()
@@ -97,4 +111,9 @@ elif view == "Leaderboard Table":
     st.subheader("Current Leaderboard")
     st.table(df_leaderboard)
 
+# Shareable link instructions
+share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&user_id={user_id}&rival1_team={rival1_team}&rival1_id={rival1_id}&rival2_team={rival2_team}&rival2_id={rival2_id}"
+st.markdown("---")
+st.markdown("### 🔗 Share This Setup")
+st.code(share_url)
 st.caption(f"Built for {user_team} 🍞⚽")
