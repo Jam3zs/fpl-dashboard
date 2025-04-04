@@ -133,7 +133,7 @@ if isinstance(nearby_rivals, list) and nearby_rivals:
         []
     )
 else:
-    extra_rivals = [])
+    extra_rivals = []
 
 # Collect manager info
 manager_ids = {
