@@ -36,6 +36,9 @@ st.sidebar.title(f"👤 {user_team}")
 
 
 # Secret "H" button to reveal hidden league (must come before league_options is set)
+
+
+# Secret "H" button to reveal hidden league (must come before league_options is set)
 if user_id == "660915":
     col1, col2, col3 = st.columns([1, 1, 8])
     with col1:
@@ -54,7 +57,7 @@ def get_user_leagues(user_id):
     # Hide specific league for your ID unless toggle is enabled
     hidden_league_name = "the competitive heads from 51"
     hide_league = True
-    
+
 
 league_options = get_user_leagues(user_id)
         selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
