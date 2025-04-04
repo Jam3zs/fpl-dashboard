@@ -168,18 +168,7 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 
 st.image("logo.png", use_container_width=True)
 
-# Secret 'H' click inside team name caption
-if user_id == "660915":
-    st.markdown(
-        f"<div style='text-align: center; font-size: 1rem;'>Built for Palmer <span style='cursor:pointer; color:transparent;' onclick=\"window.location.reload();\">H</span>am Sandwich 🍞⚽</div>",
-        unsafe_allow_html=True
-    )
-    if 'show_hidden_league' not in st.session_state:
-        st.session_state['show_hidden_league'] = False
-    if st.query_params.get("unlock") == ["yes"]:
-        st.session_state['show_hidden_league'] = True
-else:
-    st.caption(f"Built for {user_team} 🍞⚽")
+st.caption(f"Built for {user_team} 🍞⚽")
 
 import random
 
