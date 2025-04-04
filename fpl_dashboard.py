@@ -174,7 +174,7 @@ elif view == "Leaderboard Table":
         'Total Points': [],
         'Rank': []
     }
-    for name in manager_ids:
+    for name, info in manager_ids.items():
         leaderboard['Manager'].append(name)
         leaderboard['Total Points'].append(latest[f'{name} Total'].values[0])
         leaderboard['Rank'].append(info.get('rank', '-'))
@@ -182,6 +182,7 @@ elif view == "Leaderboard Table":
     df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
     st.subheader("Current Leaderboard")
     st.table(df_leaderboard)
+
 
 elif view == "Weekly Averages":
     averages = {
