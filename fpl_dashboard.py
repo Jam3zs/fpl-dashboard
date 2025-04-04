@@ -54,6 +54,16 @@ def get_user_leagues(user_id):
     hidden_league_name = "the competitive heads from 51"
     hide_league = not st.session_state.get("show_hidden_league", False)
 
+    league_dict = {}
+    for league in leagues:
+        name = league['name'].strip().lower()
+        if league['entry_rank'] and league['entry_rank'] <= 1000:
+            if hide_league and name == hidden_league_name:
+                continue
+            league_dict[league['name']] = league['id']
+
+    return league_dict
+
 
 try:
     league_options = get_user_leagues(user_id)
@@ -166,7 +176,7 @@ if user_id == "660915":
     )
     if 'show_hidden_league' not in st.session_state:
         st.session_state['show_hidden_league'] = False
-    if st.experimental_get_query_params().get("unlock") == ["yes"]:
+    if st.query_params.get("unlock") == ["yes"]:
         st.session_state['show_hidden_league'] = True
 else:
     st.caption(f"Built for {user_team} 🍞⚽")
