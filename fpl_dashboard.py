@@ -24,9 +24,6 @@ try:
     if user_id:
         user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
         user_team = user_info.get("name", "Palmer Ham Sandwich")
-        
-    else:
-        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
     else:
         user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 except:
