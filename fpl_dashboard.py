@@ -71,6 +71,8 @@ except:
 else:
     selected_league = None
 
+nearby_rivals = []  # Ensure this exists even if try fails
+
 # Auto-pick closest rivals
 def find_closest_above(user_id, standings):
     user_index = next((i for i, r in enumerate(standings) if str(r['entry']) == user_id), None)
