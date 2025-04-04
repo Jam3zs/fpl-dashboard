@@ -18,6 +18,9 @@ sns.set_theme(style="darkgrid")
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
+if not user_id:
+    st.error("Please enter your FPL ID to continue.")
+    st.stop()
 
 try:
     if user_id:
@@ -38,7 +41,22 @@ def get_user_leagues(user_id):
     url = f"https://fantasy.premierleague.com/api/entry/{user_id}/"
     data = requests.get(url).json()
     leagues = data['leagues']['classic']
-    return {league['name']: league['id'] for league in leagues if league['entry_rank'] and league['entry_rank'] <= 1000}
+
+    # Hide specific league for your ID unless toggle is enabled
+    hidden_league_name = "the competitive heads from 51"
+    hide_league = True
+    if user_id == "660915":
+        hide_league = not st.session_state.get("show_hidden_league", False)
+
+    league_dict = {}
+    for league in leagues:
+        name = league['name'].strip().lower()
+        if league['entry_rank'] and league['entry_rank'] <= 1000:
+            if hide_league and name == hidden_league_name:
+                continue
+            league_dict[league['name']] = league['id']
+
+    return league_dict
 
 @st.cache_data(show_spinner=False)
 def fetch_league_standings(league_id):
@@ -396,4 +414,9 @@ share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&
 st.markdown("---")
 st.markdown("### 🔗 Share This Setup")
 st.code(share_url)
-st.caption(f"Built for {user_team} 🍞⚽")
+col1, col2, col3 = st.columns([1, 1, 8])
+with col1:
+    if user_id == "660915" and st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
+        st.session_state.show_hidden_league = True
+with col3:
+    st.caption(f"Built for {user_team} 🍞⚽")
