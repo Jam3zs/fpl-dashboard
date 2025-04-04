@@ -126,7 +126,14 @@ except:
     rival2_team = st.sidebar.text_input("Rival 2 Team Name", "Klopps and Robbers")
     rival2_id = st.sidebar.text_input("Rival 2 FPL ID", "5338703")
 
-extra_rivals = st.sidebar.multiselect("Select additional rivals from top 50:", [f"{r['entry_name']} (ID: {r['entry']})" for r in nearby_rivals], [])
+if isinstance(nearby_rivals, list) and nearby_rivals:
+    extra_rivals = st.sidebar.multiselect(
+        "Select additional rivals from top 50:",
+        [f"{r['entry_name']} (ID: {r['entry']})" for r in nearby_rivals],
+        []
+    )
+else:
+    extra_rivals = []} (ID: {r['entry']})" for r in nearby_rivals], [])
 
 # Collect manager info
 manager_ids = {
