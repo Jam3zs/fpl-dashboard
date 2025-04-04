@@ -35,6 +35,15 @@ st.sidebar.title(f"👤 {user_team}")
 
 
 
+# Secret "H" button to reveal hidden league (must come before league_options is set)
+if user_id == "660915":
+    col1, col2, col3 = st.columns([1, 1, 8])
+    with col1:
+        if st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
+            st.session_state.show_hidden_league = True
+    with col3:
+        st.caption(f"Built for {user_team} 🍞⚽")
+
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
 def get_user_leagues(user_id):
@@ -45,53 +54,7 @@ def get_user_leagues(user_id):
     # Hide specific league for your ID unless toggle is enabled
     hidden_league_name = "the competitive heads from 51"
     hide_league = True
-    if user_id == "660915":
-        hide_league = not st.session_state.get("show_hidden_league", False)
-
-    league_dict = {}
-    for league in leagues:
-        name = league['name'].strip().lower()
-        if league['entry_rank'] and league['entry_rank'] <= 1000:
-            if hide_league and name == hidden_league_name:
-                continue
-            league_dict[league['name']] = league['id']
-
-    return league_dict
-
-@st.cache_data(show_spinner=False)
-def fetch_league_standings(league_id):
-    standings = []
-    page = 1
-    found_user = False
-    while True:
-        url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/?page_standings={page}"
-        data = requests.get(url).json()
-        results = data['standings']['results']
-        if not results:
-            break
-        standings.extend(results)
-        # Check if user's ID is in this page
-        if any(str(r['entry']) == str(user_id) for r in results):
-            found_user = True
-        if data['standings']['has_next']:
-            page += 1
-        else:
-            break
-    if not found_user:
-        st.sidebar.warning("Your team wasn't found in this mini-league. You may not be ranked yet or the league is too large.")
-    return standings
-
-league_options = {}
-standings = []
-if user_id:
-    try:
-        if user_id == "660915":
-    col1, col2, col3 = st.columns([1, 1, 8])
-    with col1:
-        if st.button("H", help="👀" if not st.session_state.get("show_hidden_league") else ""):
-            st.session_state.show_hidden_league = True
-    with col3:
-        st.caption(f"Built for {user_team} 🍞⚽")
+    
 
 league_options = get_user_leagues(user_id)
         selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
