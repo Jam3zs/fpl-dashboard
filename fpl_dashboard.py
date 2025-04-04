@@ -17,6 +17,9 @@ st.sidebar.title("FPL Dashboard")
 
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
+user_id = st.sidebar.text_input("Your FPL ID", "660915")
+
+# Auto-fetch team name if possible
 try:
     if user_id:
         user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
@@ -25,7 +28,6 @@ try:
         user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 except:
     user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
-user_id = st.sidebar.text_input("Your FPL ID", "660915")
 
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
