@@ -47,6 +47,9 @@ if user_id == "660915":
     with col3:
         st.caption(f"Built for {user_team} 🍞⚽")
 
+# Define standings so it always exists
+standings = []
+
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
 def get_user_leagues(user_id):
