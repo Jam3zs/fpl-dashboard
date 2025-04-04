@@ -154,7 +154,19 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
-st.title(f"FPL Comparison: {user_team} vs Rivals")
+st.image("https://fpl-dashboard-palmer.streamlit.app/file=logo", width=120)
+st.markdown("# Palmer Ham Sandwich's FPL Dashboard")
+import random
+
+# Fun tagline rotation
+taglines = [
+    "The only dashboard tastier than your green arrows 😋⚽",
+    "Serving FPL stats with extra sauce 🍔📊",
+    "Where clean sheets meet sandwich dreams 🧼🥪",
+    "Crunch your rivals. Like lettuce. 🥬⚽",
+    "A delicious way to digest your gameweek 🍽️📈"
+]
+st.caption(random.choice(taglines))
 
 # Add option to download plot
 def get_image_download_link(fig):
