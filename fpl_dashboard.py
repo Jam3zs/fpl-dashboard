@@ -207,6 +207,22 @@ elif view == "Head-to-Head Heatmap":
     sns.heatmap(h2h.astype(int), annot=True, fmt="d", cmap="RdYlGn")
     st.pyplot()
 
+if view in ["Total Points", "Weekly Points"]:
+    fig, ax = plt.subplots(figsize=(12, 6))
+    for name in manager_ids:
+        column = f"{name} Total" if view == "Total Points" else f"{name} Weekly"
+        if column not in combined.columns:
+            continue
+        ax.plot(filtered['event'], filtered[column], marker='o', label=name)
+    ax.set_ylabel("Total Points" if view == "Total Points" else "Weekly Points")
+    ax.set_xlabel("Gameweek")
+    ax.set_title(view)
+    ax.set_xticks(filtered['event'])
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+    st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
+
 # (Retain previous views like Total Points, Weekly Points, etc. here...)
 
 # Shareable link instructions
