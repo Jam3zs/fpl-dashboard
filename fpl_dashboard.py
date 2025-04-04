@@ -41,9 +41,21 @@ def fetch_league_rivals(league_id, user_id):
     standings_url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/"
     standings_response = requests.get(standings_url).json()
     rivals = standings_response['standings']['results']
-    sorted_rivals = sorted(rivals, key=lambda x: abs(x['entry'] - int(user_id)))
-    closest = [r for r in sorted_rivals if str(r['entry']) != user_id][:2]
-    return [(r['entry_name'], r['entry']) for r in closest]
+
+    # Find the index of the user
+    user_index = next((i for i, r in enumerate(rivals) if str(r['entry']) == user_id), None)
+
+    if user_index is None:
+        return []
+
+    # Try to get the two above
+    if user_index >= 2:
+        selected = rivals[user_index - 2:user_index]
+    else:
+        # If at top, take two below instead
+        selected = rivals[user_index + 1:user_index + 3]
+
+    return [(r['entry_name'], r['entry']) for r in selected], r['entry']) for r in closest]
 
 try:
     if selected_league:
