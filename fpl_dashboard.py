@@ -17,7 +17,14 @@ st.sidebar.title("FPL Dashboard")
 
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
-user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
+try:
+    if user_id:
+        user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
+        user_team = user_info.get("name", "Palmer Ham Sandwich")
+    else:
+        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
+except:
+    user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
 
 # Fetch leagues for user
@@ -158,7 +165,7 @@ from PIL import Image
 # Crop logo top and bottom
 logo = Image.open("logo.png")
 width, height = logo.size
-cropped_logo = logo.crop((0, height * 0.2, width, height * 0.8))
+cropped_logo = logo.crop((0, height * 0.35, width, height * 0.65))
 st.image(cropped_logo, use_container_width=True)
 
 import random
