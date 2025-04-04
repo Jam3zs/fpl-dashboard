@@ -32,6 +32,7 @@ def get_user_leagues(user_id):
 def fetch_league_standings(league_id):
     standings = []
     page = 1
+    found_user = False
     while True:
         url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/?page_standings={page}"
         data = requests.get(url).json()
@@ -39,10 +40,15 @@ def fetch_league_standings(league_id):
         if not results:
             break
         standings.extend(results)
+        # Check if user's ID is in this page
+        if any(str(r['entry']) == str(user_id) for r in results):
+            found_user = True
         if data['standings']['has_next']:
             page += 1
         else:
             break
+    if not found_user:
+        st.sidebar.warning("Your team wasn't found in this mini-league. You may not be ranked yet or the league is too large.")
     return standings
 
 league_options = {}
