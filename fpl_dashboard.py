@@ -223,6 +223,25 @@ if view in ["Total Points", "Weekly Points"]:
     st.pyplot(fig)
     st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
 
+elif view == "Points Difference":
+    base = user_team
+    fig, ax = plt.subplots(figsize=(12, 6))
+    for name in manager_ids:
+        if name != base:
+            base_col = f'{base} Total'
+            rival_col = f'{name} Total'
+            if base_col in combined.columns and rival_col in combined.columns:
+                diff = combined[base_col] - combined[rival_col]
+                ax.plot(filtered['event'], diff.loc[filtered.index], marker='o', label=f"{base} - {name}")
+    ax.set_ylabel("Points Ahead")
+    ax.set_xlabel("Gameweek")
+    ax.set_xticks(filtered['event'])
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+    st.subheader(f"Points Difference vs {base}")
+    st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
+
 # (Retain previous views like Total Points, Weekly Points, etc. here...)
 
 # Shareable link instructions
