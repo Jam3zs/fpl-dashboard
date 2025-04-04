@@ -127,8 +127,7 @@ for name, info in manager_ids.items():
         'total_points': f'{name} Total'
     })
     dataframes[name] = df
-    raw_scores[name] = df['points'].tolist()
-
+    
 # Merge all into a single dataframe
 combined = dataframes[list(manager_ids.keys())[0]][['event']].copy()
 for name, df in dataframes.items():
