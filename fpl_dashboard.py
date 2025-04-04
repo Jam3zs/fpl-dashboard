@@ -19,6 +19,17 @@ sns.set_theme(style="darkgrid")
 st.sidebar.markdown("### Enter your FPL details")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
 
+try:
+    if user_id:
+        user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
+        user_team = user_info.get("name", "Palmer Ham Sandwich")
+    else:
+        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
+except:
+    user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
+
+st.sidebar.title(f"👤 {user_team}")
+
 # Auto-fetch team name if possible
 try:
     if user_id:
