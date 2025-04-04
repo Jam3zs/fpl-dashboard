@@ -13,11 +13,14 @@ st.set_page_config(page_title="FPL Dashboard", layout="wide", initial_sidebar_st
 # Apply Streamlit dark theme colors
 sns.set_theme(style="darkgrid")
 
-st.sidebar.title("FPL Dashboard")
+st.sidebar.title(f"👤 {user_team}")
 
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
+if not user_id:
+    st.error("Please enter your FPL ID to continue.")
+    st.stop()
 
 try:
     if user_id:
@@ -162,8 +165,9 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
-st.image("logo.png", use_container_width=True)
 
+
+st.image("logo.png", use_container_width=True)
 st.title(f"FPL Comparison: {user_team} vs Rivals")
 
 # Add option to download plot
