@@ -198,14 +198,15 @@ elif view == "Head-to-Head Heatmap":
     names = list(manager_ids.keys())
     h2h = pd.DataFrame(index=names, columns=names, data=0)
     for gw in all_weeks:
-        scores = {name: combined.loc[combined['event'] == gw, f'{name} Weekly'].values[0] for name in names}
+        scores = {name: combined.loc[combined['event'] == gw, f'{name} Weekly'].values[0] for name in names if f'{name} Weekly' in combined.columns}
         for a in names:
             for b in names:
-                if a != b:
+                if a != b and a in scores and b in scores:
                     h2h.at[a, b] += 1 if scores[a] > scores[b] else 0
     st.subheader("⚔️ Head-to-Head Wins")
-    sns.heatmap(h2h.astype(int), annot=True, fmt="d", cmap="RdYlGn")
-    st.pyplot()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(h2h.astype(int), annot=True, fmt="d", cmap="RdYlGn", ax=ax)
+    st.pyplot(fig)
 
 if view in ["Total Points", "Weekly Points"]:
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -241,6 +242,56 @@ elif view == "Points Difference":
     st.pyplot(fig)
     st.subheader(f"Points Difference vs {base}")
     st.markdown(get_image_download_link(fig), unsafe_allow_html=True)
+
+elif view == "Leaderboard Table":
+    latest = combined[combined['event'] == combined['event'].max()].copy()
+    leaderboard = {
+        'Manager': [],
+        'Total Points': [],
+        'Rank': []
+    }
+    for name, info in manager_ids.items():
+        col = f"{name} Total"
+        if col in latest:
+            leaderboard['Manager'].append(name)
+            leaderboard['Total Points'].append(latest[col].values[0])
+            leaderboard['Rank'].append(info.get('rank', '-'))
+    df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
+    st.subheader("Current Leaderboard")
+    st.table(df_leaderboard)
+
+elif view == "Weekly Averages":
+    averages = {
+        'Manager': [],
+        'Average Points': []
+    }
+    for name in manager_ids:
+        col = f"{name} Weekly"
+        if col in combined:
+            avg = combined[col].mean()
+            averages['Manager'].append(name)
+            averages['Average Points'].append(round(avg, 2))
+    df_avg = pd.DataFrame(averages).sort_values(by="Average Points", ascending=False).reset_index(drop=True)
+    st.subheader("Average Weekly Points")
+    st.table(df_avg)
+
+elif view == "Biggest Swing":
+    swings = {
+        'Manager': [],
+        'Gameweek': [],
+        'Swing': []
+    }
+    for name in manager_ids:
+        col = f"{name} Weekly"
+        if col in combined:
+            diffs = combined[col].diff().abs()
+            max_idx = diffs.idxmax()
+            swings['Manager'].append(name)
+            swings['Gameweek'].append(combined.loc[max_idx, 'event'])
+            swings['Swing'].append(int(diffs[max_idx]))
+    df_swing = pd.DataFrame(swings).sort_values(by="Swing", ascending=False).reset_index(drop=True)
+    st.subheader("Biggest Gameweek Point Swings")
+    st.table(df_swing)
 
 # (Retain previous views like Total Points, Weekly Points, etc. here...)
 
