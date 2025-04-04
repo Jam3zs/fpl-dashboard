@@ -17,8 +17,16 @@ st.sidebar.title("FPL Dashboard")
 
 # User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
-user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
+
+try:
+    if user_id:
+        user_info = requests.get(f"https://fantasy.premierleague.com/api/entry/{user_id}/").json()
+        user_team = user_info.get("name", "Palmer Ham Sandwich")
+    else:
+        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
+except:
+    user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
@@ -72,11 +80,20 @@ def find_closest_above(user_id, standings):
     if user_index is None:
         return [], [], None
     user_rank = standings[user_index]['rank']
-    rivals_above = [r for r in standings[max(0, user_index - 2):user_index] if str(r['entry']) != user_id]
+
+    # Always try to get 2 above if available
+    if user_index >= 2:
+        auto_rivals = [standings[user_index - 2], standings[user_index - 1]]
+    elif user_index == 1:
+        auto_rivals = [standings[0], standings[2]] if len(standings) > 2 else [standings[0]]
+    else:
+        auto_rivals = standings[1:3] if len(standings) > 2 else standings[1:]
+
+    # Get 25 above and below for selection
     start = max(0, user_index - 25)
     end = min(len(standings), user_index + 26)
     nearby = [r for i, r in enumerate(standings[start:end]) if str(r['entry']) != user_id]
-    return rivals_above[:2], nearby, user_rank
+    return auto_rivals[:2], nearby, user_rank
 
 try:
     if standings:
@@ -144,6 +161,8 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
+
+st.image("logo.png", use_container_width=True)
 
 st.title(f"FPL Comparison: {user_team} vs Rivals")
 
