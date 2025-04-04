@@ -26,44 +26,44 @@ def get_user_leagues(user_id):
     leagues = data['leagues']['classic']
     return {league['name']: league['id'] for league in leagues}
 
+@st.cache_data(show_spinner=False)
+def fetch_league_standings(league_id):
+    url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/"
+    return requests.get(url).json()['standings']['results'][:50]  # Top 50 only
+
 league_options = {}
+standings = []
 if user_id:
     try:
         league_options = get_user_leagues(user_id)
         selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
+        if selected_league:
+            league_id = league_options[selected_league]
+            standings = fetch_league_standings(league_id)
     except:
-        st.sidebar.warning("Unable to load leagues. Check your FPL ID.")
+        st.sidebar.warning("Unable to load leagues or standings. Check your FPL ID.")
         selected_league = None
 else:
     selected_league = None
 
-def fetch_league_rivals(league_id, user_id):
-    standings_url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/"
-    standings_response = requests.get(standings_url).json()
-    rivals = standings_response['standings']['results']
-
-    user_index = next((i for i, r in enumerate(rivals) if str(r['entry']) == user_id), None)
-
+# Auto-pick closest rivals
+def find_closest_above(user_id, standings):
+    user_index = next((i for i, r in enumerate(standings) if str(r['entry']) == user_id), None)
     if user_index is None:
-        return [], []
-
-    user_rank = rivals[user_index]['rank']
-
+        return [], None
+    user_rank = standings[user_index]['rank']
     if user_index >= 2:
-        selected = rivals[user_index - 2:user_index]
+        return standings[user_index - 2:user_index], user_rank
     else:
-        selected = rivals[user_index + 1:user_index + 3]
-
-    return [(r['entry_name'], r['entry']) for r in selected], user_rank
+        return standings[user_index + 1:user_index + 3], user_rank
 
 try:
-    if selected_league:
-        league_id = league_options[selected_league]
-        rivals, user_rank = fetch_league_rivals(league_id, user_id)
-        rival1_team, rival1_id = rivals[0]
-        rival2_team, rival2_id = rivals[1]
+    if standings:
+        auto_rivals, user_rank = find_closest_above(user_id, standings)
+        rival1_team, rival1_id = auto_rivals[0]['entry_name'], auto_rivals[0]['entry']
+        rival2_team, rival2_id = auto_rivals[1]['entry_name'], auto_rivals[1]['entry']
     else:
-        raise ValueError("No league selected")
+        raise ValueError("No standings available")
 except:
     user_rank = None
     st.sidebar.warning("Could not auto-detect rivals. Check your FPL ID or league data.")
@@ -72,17 +72,8 @@ except:
     rival2_team = st.sidebar.text_input("Rival 2 Team Name", "Klopps and Robbers")
     rival2_id = st.sidebar.text_input("Rival 2 FPL ID", "5338703")
 
-# Option to select additional rivals
-additional_rival_ids = st.sidebar.text_input("Additional Rival IDs (comma-separated)", "")
-if additional_rival_ids:
-    for rid in additional_rival_ids.split(','):
-        try:
-            rid = int(rid.strip())
-            entry_url = f"https://fantasy.premierleague.com/api/entry/{rid}/"
-            entry_data = requests.get(entry_url).json()
-            manager_ids[entry_data['name']] = rid
-        except:
-            continue
+# Dropdown to choose more rivals from top 50
+extra_rivals = st.sidebar.multiselect("Select additional rivals from top 50:", [f"{r['entry_name']} (ID: {r['entry']})" for r in standings], [])
 
 # Collect manager info
 manager_ids = {
@@ -90,6 +81,13 @@ manager_ids = {
     rival1_team: int(rival1_id),
     rival2_team: int(rival2_id)
 }
+
+# Parse and add extra rivals
+for item in extra_rivals:
+    name_id = item.split(" (ID: ")
+    name = name_id[0]
+    rid = int(name_id[1].replace(")", ""))
+    manager_ids[name] = rid
 
 def fetch_history(manager_id):
     url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/history/"
@@ -211,7 +209,7 @@ elif view == "Biggest Swing":
     st.table(df_swing)
 
 # Shareable link instructions
-share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&user_id={user_id}&rival1_team={rival1_team}&rival1_id={rival1_id}&rival2_team={rival2_team}&rival2_id={rival2_id}"
+share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&user_id={user_id}"
 st.markdown("---")
 st.markdown("### 🔗 Share This Setup")
 st.code(share_url)
