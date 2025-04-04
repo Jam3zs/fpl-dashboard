@@ -42,35 +42,47 @@ def fetch_league_rivals(league_id, user_id):
     standings_response = requests.get(standings_url).json()
     rivals = standings_response['standings']['results']
 
-    # Find the index of the user
     user_index = next((i for i, r in enumerate(rivals) if str(r['entry']) == user_id), None)
 
     if user_index is None:
-        return []
+        return [], []
 
-    # Try to get the two above
+    user_rank = rivals[user_index]['rank']
+
     if user_index >= 2:
         selected = rivals[user_index - 2:user_index]
     else:
-        # If at top, take two below instead
         selected = rivals[user_index + 1:user_index + 3]
 
-    return [(r['entry_name'], r['entry']) for r in selected], r['entry']) for r in closest]
+    return [(r['entry_name'], r['entry']) for r in selected], user_rank
 
 try:
     if selected_league:
         league_id = league_options[selected_league]
-        rivals = fetch_league_rivals(league_id, user_id)
+        rivals, user_rank = fetch_league_rivals(league_id, user_id)
         rival1_team, rival1_id = rivals[0]
         rival2_team, rival2_id = rivals[1]
     else:
         raise ValueError("No league selected")
 except:
+    user_rank = None
     st.sidebar.warning("Could not auto-detect rivals. Check your FPL ID or league data.")
     rival1_team = st.sidebar.text_input("Rival 1 Team Name", "Slots Flops")
     rival1_id = st.sidebar.text_input("Rival 1 FPL ID", "8438056")
     rival2_team = st.sidebar.text_input("Rival 2 Team Name", "Klopps and Robbers")
     rival2_id = st.sidebar.text_input("Rival 2 FPL ID", "5338703")
+
+# Option to select additional rivals
+additional_rival_ids = st.sidebar.text_input("Additional Rival IDs (comma-separated)", "")
+if additional_rival_ids:
+    for rid in additional_rival_ids.split(','):
+        try:
+            rid = int(rid.strip())
+            entry_url = f"https://fantasy.premierleague.com/api/entry/{rid}/"
+            entry_data = requests.get(entry_url).json()
+            manager_ids[entry_data['name']] = rid
+        except:
+            continue
 
 # Collect manager info
 manager_ids = {
@@ -110,6 +122,9 @@ selected_range = st.sidebar.slider("Select Gameweek Range:", min_value=min_week,
 
 # Filter by selected gameweek range
 filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'] <= selected_range[1])]
+
+if user_rank:
+    st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
 st.title(f"FPL Comparison: {user_team} vs Rivals")
 
