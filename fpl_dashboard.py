@@ -10,6 +10,8 @@ import seaborn as sns
 
 st.set_page_config(page_title="FPL Dashboard", layout="wide", initial_sidebar_state="expanded")
 
+st.image("logo.png", use_container_width=True)
+
 # Apply Streamlit dark theme colors
 sns.set_theme(style="darkgrid")
 
