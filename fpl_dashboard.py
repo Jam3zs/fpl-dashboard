@@ -31,11 +31,6 @@ except:
 st.sidebar.title(f"👤 {user_team}")
 
 
-    else:
-        user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
-st.sidebar.title(f"👤 {user_team}")
-except:
-    user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 
 # Fetch leagues for user
 @st.cache_data(show_spinner=False)
