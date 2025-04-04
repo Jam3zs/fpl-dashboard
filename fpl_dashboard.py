@@ -154,7 +154,7 @@ filtered = combined[(combined['event'] >= selected_range[0]) & (combined['event'
 if user_rank:
     st.markdown(f"### 🏅 Your current rank in '{selected_league}': **{user_rank}**")
 
-st.image("https://fpl-dashboard-palmer.streamlit.app/file=logo", width=120)
+st.image("logo.png", width=120)
 st.markdown("# Palmer Ham Sandwich's FPL Dashboard")
 import random
 
