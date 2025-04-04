@@ -3,20 +3,64 @@ import pandas as pd
 import requests
 import matplotlib.pyplot as plt
 import base64
+import seaborn as sns
+import io
 
-st.set_page_config(page_title="FPL Dashboard", layout="wide")
+st.set_page_config(page_title="FPL Dashboard", layout="wide", initial_sidebar_state="expanded")
+
+# Apply Streamlit dark theme colors
+sns.set_theme(style="darkgrid")
+
 st.sidebar.title("FPL Dashboard")
 
-# User input for team names and IDs
+# User input for team name and ID
 st.sidebar.markdown("### Enter your FPL details")
 user_team = st.sidebar.text_input("Your Team Name", "Palmer Ham Sandwich")
 user_id = st.sidebar.text_input("Your FPL ID", "660915")
-rival1_team = st.sidebar.text_input("Rival 1 Team Name", "Slots Flops")
-rival1_id = st.sidebar.text_input("Rival 1 FPL ID", "8438056")
-rival2_team = st.sidebar.text_input("Rival 2 Team Name", "Klopps and Robbers")
-rival2_id = st.sidebar.text_input("Rival 2 FPL ID", "5338703")
 
-# Collect user input into manager_ids dict
+# Fetch leagues for user
+@st.cache_data(show_spinner=False)
+def get_user_leagues(user_id):
+    url = f"https://fantasy.premierleague.com/api/entry/{user_id}/"
+    data = requests.get(url).json()
+    leagues = data['leagues']['classic']
+    return {league['name']: league['id'] for league in leagues}
+
+league_options = {}
+if user_id:
+    try:
+        league_options = get_user_leagues(user_id)
+        selected_league = st.sidebar.selectbox("Choose Mini-League", list(league_options.keys()))
+    except:
+        st.sidebar.warning("Unable to load leagues. Check your FPL ID.")
+        selected_league = None
+else:
+    selected_league = None
+
+def fetch_league_rivals(league_id, user_id):
+    standings_url = f"https://fantasy.premierleague.com/api/leagues-classic/{league_id}/standings/"
+    standings_response = requests.get(standings_url).json()
+    rivals = standings_response['standings']['results']
+    sorted_rivals = sorted(rivals, key=lambda x: abs(x['entry'] - int(user_id)))
+    closest = [r for r in sorted_rivals if str(r['entry']) != user_id][:2]
+    return [(r['entry_name'], r['entry']) for r in closest]
+
+try:
+    if selected_league:
+        league_id = league_options[selected_league]
+        rivals = fetch_league_rivals(league_id, user_id)
+        rival1_team, rival1_id = rivals[0]
+        rival2_team, rival2_id = rivals[1]
+    else:
+        raise ValueError("No league selected")
+except:
+    st.sidebar.warning("Could not auto-detect rivals. Check your FPL ID or league data.")
+    rival1_team = st.sidebar.text_input("Rival 1 Team Name", "Slots Flops")
+    rival1_id = st.sidebar.text_input("Rival 1 FPL ID", "8438056")
+    rival2_team = st.sidebar.text_input("Rival 2 Team Name", "Klopps and Robbers")
+    rival2_id = st.sidebar.text_input("Rival 2 FPL ID", "5338703")
+
+# Collect manager info
 manager_ids = {
     user_team: int(user_id),
     rival1_team: int(rival1_id),
@@ -46,7 +90,7 @@ for name, df in dataframes.items():
     combined = combined.merge(df, on='event', how='outer')
 
 # Sidebar options
-view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table"])
+view = st.sidebar.radio("Select View:", ["Total Points", "Weekly Points", "Points Difference", "Leaderboard Table", "Weekly Averages", "Biggest Swing"])
 
 min_week = int(combined['event'].min())
 max_week = int(combined['event'].max())
@@ -59,7 +103,6 @@ st.title(f"FPL Comparison: {user_team} vs Rivals")
 
 # Add option to download plot
 def get_image_download_link(fig):
-    import io
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
@@ -110,6 +153,35 @@ elif view == "Leaderboard Table":
     df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="Total Points", ascending=False).reset_index(drop=True)
     st.subheader("Current Leaderboard")
     st.table(df_leaderboard)
+
+elif view == "Weekly Averages":
+    averages = {
+        'Manager': [],
+        'Average Points': []
+    }
+    for name in manager_ids:
+        avg = filtered[f'{name} Weekly'].mean()
+        averages['Manager'].append(name)
+        averages['Average Points'].append(round(avg, 2))
+    df_avg = pd.DataFrame(averages).sort_values(by="Average Points", ascending=False).reset_index(drop=True)
+    st.subheader("Average Weekly Points")
+    st.table(df_avg)
+
+elif view == "Biggest Swing":
+    swings = {
+        'Manager': [],
+        'Gameweek': [],
+        'Swing': []
+    }
+    for name in manager_ids:
+        diffs = filtered[f'{name} Weekly'].diff().abs()
+        max_idx = diffs.idxmax()
+        swings['Manager'].append(name)
+        swings['Gameweek'].append(filtered.loc[max_idx, 'event'])
+        swings['Swing'].append(int(diffs[max_idx]))
+    df_swing = pd.DataFrame(swings).sort_values(by="Swing", ascending=False).reset_index(drop=True)
+    st.subheader("Biggest Gameweek Point Swings")
+    st.table(df_swing)
 
 # Shareable link instructions
 share_url = f"https://fpl-dashboard-palmer.streamlit.app/?user_team={user_team}&user_id={user_id}&rival1_team={rival1_team}&rival1_id={rival1_id}&rival2_team={rival2_team}&rival2_id={rival2_id}"
